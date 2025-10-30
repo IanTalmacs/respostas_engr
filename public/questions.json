@@ -1,0 +1,77 @@
+[
+  {
+    "question": "O que ficou preso no trânsito?",
+    "answers": [
+      "O ego do ex",
+      "Uma playlist inteira de boleros",
+      "O senso de direção",
+      "A paciência do motorista",
+      "O final de série que ninguém assistiu",
+      "Meu plano de fim de semana",
+      "A conexão com a vida social",
+      "O dog que não aprendeu a sentar",
+      "Um filtro que prometeu milagres",
+      "O anel que eu perdi no sofá"
+    ]
+  },
+  {
+    "question": "Motivo real para ter enviado a mensagem sem querer:",
+    "answers": [
+      "Dedos rebeldes",
+      "Autocorreção traiçoeira",
+      "Vingança do teclado",
+      "Testando limites do destino",
+      "Era a receita do tio",
+      "Culpa do modo noturno",
+      "Falha no plano de silêncio",
+      "Era só um GIF fatal",
+      "Prática de desapego",
+      "Tentando impressionar o Wi‑Fi"
+    ]
+  },
+  {
+    "question": "O novo hit que ninguém pediu:",
+    "answers": [
+      "Sons de micro-ondas",
+      "Balada do boleto",
+      "Samba do despertador",
+      "Rap da segunda-feira",
+      "Balada do silêncio constrangedor",
+      "Funk do condomínio",
+      "Ópera do trânsito",
+      "Lo-fi do envio de e-mails",
+      "Choro do celular sem bateria",
+      "Bossa nova do chá esfriando"
+    ]
+  },
+  {
+    "question": "Resumo da minha última reunião:",
+    "answers": [
+      "Alguém falou, outro ecoou",
+      "Slides com espírito aventureiro",
+      "Uma decisão por sorteio",
+      "Plano que se autodestruiu",
+      "Promessa para a próxima reunião",
+      "Tema: repetir o tema",
+      "Checklist emocional",
+      "Filtro de responsabilidade",
+      "Mapa sem destino",
+      "Hora destinada a acordar"
+    ]
+  },
+  {
+    "question": "Meu app favorito para procrastinar:",
+    "answers": [
+      "Rolar feed infinito",
+      "Colar memes saudáveis",
+      "Aplicativo dos vídeos sem fim",
+      "Mapa de lugares que nunca vou",
+      "Editor de listas de listas",
+      "Jogo que consome tempo e alma",
+      "Loja de itens que não preciso",
+      "Diário de sonhos adiados",
+      "Filtro para rostos imaginários",
+      "Sala de chat das horas vazias"
+    ]
+  }
+]

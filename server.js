@@ -103,5 +103,8 @@ function checkAllSubmitted(){const judge=game.order[game.judgeIndex];for(let id 
 setInterval(()=>{
   if(game.started&&game.expiresAt&&Date.now()>game.expiresAt){resetGame()}
 },1000*30)
-const PORT=process.env.PORT||3000
-server.listen(PORT)
+
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -1,64 +1,46 @@
 <!doctype html>
-<html lang="pt-BR">
+<html>
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+<title>Jogo</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main id="app">
-    <section id="screen-setup" class="screen">
-      <div class="card">
-        <label for="player-count">Jogadores</label>
-        <select id="player-count">
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-          <option value="7">7</option>
-          <option value="8">8</option>
-        </select>
-        <div id="names"></div>
-        <button id="start-game" class="big">Começar</button>
-      </div>
-    </section>
-
-    <section id="screen-board" class="screen hidden">
-      <div class="top-scores" id="scores"></div>
-      <div class="card">
-        <button id="start-round" class="big">iniciar round</button>
-      </div>
-    </section>
-
-    <section id="screen-pass" class="screen hidden">
-      <div class="card">
-        <div id="pass-text"></div>
-        <button id="i-am-button" class="big"></button>
-      </div>
-    </section>
-
-    <section id="screen-choose" class="screen hidden">
-      <div class="card">
-        <div id="question-text" class="question"></div>
-        <div id="choices" class="choices"></div>
-      </div>
-    </section>
-
-    <section id="screen-judge-pass" class="screen hidden">
-      <div class="card">
-        <div id="pass-to-judge-text"></div>
-        <button id="i-am-judge" class="big"></button>
-      </div>
-    </section>
-
-    <section id="screen-judge" class="screen hidden">
-      <div class="card">
-        <div id="judge-question" class="question"></div>
-        <div id="judge-choices" class="choices"></div>
-      </div>
-    </section>
-
-  </main>
-  <script src="client.js"></script>
+<div id="app">
+<div id="screen1" class="screen">
+<div class="topbar"></div>
+<div class="card small">
+<input id="nameInput" placeholder="nome">
+<button id="confirmName">confirmar nome</button>
+</div>
+<div class="playersList card"></div>
+<div class="card small">
+<input id="pwInput" placeholder="senha">
+<button id="startGame">iniciar jogo</button>
+</div>
+</div>
+<div id="screen2" class="screen hidden">
+<div class="header">
+<div class="scores"></div>
+<div class="judgeInfo"></div>
+</div>
+<div class="hand card"></div>
+<div class="controls card">
+<button id="startRoundBtn">iniciar round</button>
+</div>
+</div>
+<div id="screen3" class="screen hidden">
+<div class="card blackCard"></div>
+<div class="choices card"></div>
+<div class="card small">
+<button id="confirmChoice">confirmar resposta</button>
+</div>
+</div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
 </body>
 </html>

@@ -1,12 +1,20 @@
 const fs = require('fs')
+const path = require('path')
 const express = require('express')
 const http = require('http')
 const { Server } = require('socket.io')
 const app = express()
 const server = http.createServer(app)
 const io = new Server(server)
-const raw = fs.readFileSync(__dirname + '/public/questions.json', 'utf8')
-const q = JSON.parse(raw)
+const questionsPath = path.join(__dirname, 'public', 'questions.json')
+let q = { black: [], white: [] }
+try {
+  const raw = fs.readFileSync(questionsPath, 'utf8')
+  q = JSON.parse(raw)
+} catch (e) {
+  console.error('failed to load questions.json', e)
+  q = { black: [], white: [] }
+}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 let game = {
   started:false,
@@ -15,17 +23,16 @@ let game = {
   players:{},
   order:[],
   judgeIndex:0,
-  blackDeck:shuffle(q.black.slice()),
+  blackDeck:shuffle((q.black||[]).slice()),
   whiteDeck:[],
   currentBlack:null,
   roundActive:false,
   submissions:{}
 }
-for(let i=0;i<50;i++){for(let w of q.white){game.whiteDeck.push(w)}}
-shuffle(game.whiteDeck)
-function resetGame(){game={started:false,startTime:null,expiresAt:null,players:{},order:[],judgeIndex:0,blackDeck:shuffle(q.black.slice()),whiteDeck:[],currentBlack:null,roundActive:false,submissions:{}};for(let i=0;i<50;i++){for(let w of q.white){game.whiteDeck.push(w)}};shuffle(game.whiteDeck);io.emit('gameReset')}
+for(let i=0;i<50;i++){for(let w of (q.white||[])){game.whiteDeck.push(w)}}shuffle(game.whiteDeck)
+function resetGame(){game={started:false,startTime:null,expiresAt:null,players:{},order:[],judgeIndex:0,blackDeck:shuffle((q.black||[]).slice()),whiteDeck:[],currentBlack:null,roundActive:false,submissions:{}};for(let i=0;i<50;i++){for(let w of (q.white||[])){game.whiteDeck.push(w)}};shuffle(game.whiteDeck);io.emit('gameReset')}
 function dealTo(player){while(player.hand.length<10&&game.whiteDeck.length>0){player.hand.push(game.whiteDeck.pop())}}
-app.use(express.static(__dirname + '/public'))
+app.use(express.static(path.join(__dirname,'public')))
 io.on('connection',socket=>{
   socket.on('register',payload=>{
     let playerId=payload.playerId
@@ -77,8 +84,11 @@ io.on('connection',socket=>{
     game.submissions[pid]=card
     dealTo(game.players[pid])
     io.emit('players',mapPlayers())
-    const ready=checkAllSubmitted()
-    if(ready){const entries=Object.entries(game.submissions).map(([pid,card])=>({pid,card}));shuffle(entries);io.to(game.players[game.order[game.judgeIndex]].socketId).emit('judgeChoices',entries)}
+    if(checkAllSubmitted()){
+      const entries=Object.entries(game.submissions).map(([pid,card])=>({pid,card}))
+      shuffle(entries)
+      io.to(game.players[game.order[game.judgeIndex]].socketId).emit('judgeChoices',entries)
+    }
   })
   socket.on('selectWinner',data=>{
     const judgeId=data.playerId
@@ -88,7 +98,7 @@ io.on('connection',socket=>{
     game.players[winnerPid].score=(game.players[winnerPid].score||0)+1
     game.roundActive=false
     game.submissions={}
-    game.judgeIndex=(game.judgeIndex+1)%game.order.length
+    if(game.order.length>0) game.judgeIndex=(game.judgeIndex+1)%game.order.length
     io.emit('roundEnded',{winnerPid,players:mapPlayers(),nextJudge:game.order[game.judgeIndex]||null})
   })
   socket.on('disconnect',()=>{
@@ -98,13 +108,10 @@ io.on('connection',socket=>{
   })
 })
 function findPlayerBySocket(sid){for(let id in game.players){if(game.players[id].socketId===sid)return id}return null}
-function mapPlayers(){const out=[];for(let id of game.order){const p=game.players[id];if(p)out.push({id:p.id,name:p.name,score:p.score,connected:p.connected,handSize:p.hand.length})}return out}
+function mapPlayers(){const out=[];for(let id of game.order){const p=game.players[id];if(p)out.push({id:p.id,name:p.name,score:p.score,connected:p.connected,hand:p.hand})}return out}
 function checkAllSubmitted(){const judge=game.order[game.judgeIndex];for(let id of game.order){if(id===judge)continue; if(!game.submissions[id])return false}return true}
 setInterval(()=>{
   if(game.started&&game.expiresAt&&Date.now()>game.expiresAt){resetGame()}
 },1000*30)
-
-const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const PORT=process.env.PORT||3000
+server.listen(PORT)

@@ -1,5 +1,5 @@
 {
-"black": [
+"prompts": [
 "É uma pena que os jovens hoje estão se envolvendo com ___",
 "O médico me disse que foi um milagre, mas de agora em diante, nada de ___",
 "Um jantar romântico não estaria completo sem ___",
@@ -40,9 +40,8 @@
 "Após morar 6 anos na China, descobri que eu prefiro ___",
 "O que fica mais legal com o passar do tempo?"
 "___ me faz peidar impulsivamente",
-
 ],
-"white": [
+"answers": [
 "Uma playlist cheia de boleros",
 "O computador que Stephen Hawking usava para falar",
 "Catarro, muito catarro",

@@ -1,18 +1,21 @@
-:root{--bg:#121212;--panel:#1e1e1e;--accent:#1db954;--muted:#b3b3b3;--glass:rgba(255,255,255,0.04)}*{box-sizing:border-box}html,body,#app{height:100%}body{margin:0;background:linear-gradient(180deg,#0f0f0f,var(--bg));font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:white;display:flex;align-items:center;justify-content:center}
-#app{width:100%;max-width:460px;padding:16px}
-.screen{display:flex;flex-direction:column;gap:12px}
-.card{background:var(--panel);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,0.6)}.small{display:flex;gap:8px;align-items:center}
-input{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:10px;border-radius:8px;color:white}
-button{background:var(--accent);border:none;padding:10px 12px;border-radius:10px;color:#000;font-weight:700}
-.playersList{min-height:80px;display:flex;flex-direction:column;gap:8px}
-.playerItem{display:flex;justify-content:space-between;padding:8px;border-radius:8px;background:var(--glass)}
+:root{--bg:#121212;--card:#181818;--muted:#b3b3b3;--accent:#1db954}
+*{box-sizing:border-box}
+html,body,#app{height:100%}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;background:linear-gradient(180deg,#0f0f0f, #121212)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px}
+.brand{width:36px;height:36px;border-radius:6px;background:linear-gradient(135deg,var(--accent),#1ed760)}
+.controls{display:flex;gap:8px;align-items:center}
+.controls input{background:transparent;border:1px solid #222;padding:8px;border-radius:6px;color:var(--muted)}
+.controls button{background:var(--accent);border:none;padding:8px 10px;border-radius:6px;color:#000;font-weight:600}
+main{padding:16px}
+.panel{background:rgba(255,255,255,0.02);padding:12px;border-radius:12px}
 .hidden{display:none}
-.header{display:flex;flex-direction:column;gap:8px}
-.scores{display:flex;gap:8px;flex-wrap:wrap}
-.scoreItem{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:8px}
-.hand{display:flex;overflow:auto;gap:8px;padding:10px}
-.cardWhite{min-width:120px;padding:10px;border-radius:10px;background:#fafafa;color:#111;font-weight:600}
-.blackCard{background:#0b0b0b;color:var(--muted);padding:16px;border-radius:10px;font-weight:700}
-.choices{display:flex;flex-direction:column;gap:8px}
-.choice{padding:10px;border-radius:8px;background:rgba(255,255,255,0.03)}
-@media(min-width:600px){#app{border-radius:16px}}
+#playersList{list-style:none;padding:0;margin:8px 0}
+#playersList li{display:flex;justify-content:space-between;padding:8px;background:rgba(255,255,255,0.03);margin-bottom:8px;border-radius:8px}
+.promptCard{padding:18px;border-radius:12px;background:linear-gradient(180deg,#222, #181818);font-size:18px;margin-bottom:12px}
+.hand{display:flex;gap:8px;overflow:auto;padding:8px}
+.hand .card{min-width:120px;padding:12px;border-radius:10px;background:var(--card);text-align:center}
+.submissions{display:flex;flex-wrap:wrap;gap:8px}
+.submissions .card{padding:12px;border-radius:10px;background:#222;min-width:120px}
+#czarBanner{padding:8px;color:var(--muted);margin-bottom:8px}
+@media (max-width:600px){.controls{flex-direction:column;align-items:flex-end}.hand .card{min-width:140px}}

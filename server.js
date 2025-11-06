@@ -1,117 +1,145 @@
-const fs = require('fs')
-const path = require('path')
 const express = require('express')
 const http = require('http')
 const { Server } = require('socket.io')
+const fs = require('fs')
+const path = require('path')
 const app = express()
 const server = http.createServer(app)
 const io = new Server(server)
-const questionsPath = path.join(__dirname, 'public', 'questions.json')
-let q = { black: [], white: [] }
-try {
-  const raw = fs.readFileSync(questionsPath, 'utf8')
-  q = JSON.parse(raw)
-} catch (e) {
-  console.error('failed to load questions.json', e)
-  q = { black: [], white: [] }
+app.use(express.static(path.join(__dirname, 'public')))
+const raw = fs.readFileSync(path.join(__dirname, 'public', 'questions.json'))
+const sourceDeck = JSON.parse(raw)
+const rooms = {}
+function makeCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  let code = ''
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)]
+  return code
 }
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-let game = {
-  started:false,
-  startTime:null,
-  expiresAt:null,
-  players:{},
-  order:[],
-  judgeIndex:0,
-  blackDeck:shuffle((q.black||[]).slice()),
-  whiteDeck:[],
-  currentBlack:null,
-  roundActive:false,
-  submissions:{}
+function createRoom() {
+  let code = makeCode()
+  while (rooms[code]) code = makeCode()
+  rooms[code] = {
+    players: {},
+    order: [],
+    czarIndex: 0,
+    promptDeck: Array.isArray(sourceDeck.prompts) ? [...sourceDeck.prompts] : [],
+    answerDeck: Array.isArray(sourceDeck.answers) ? [...sourceDeck.answers] : [],
+    currentPrompt: null,
+    submissions: {},
+    started: false
+  }
+  return code
 }
-for(let i=0;i<50;i++){for(let w of (q.white||[])){game.whiteDeck.push(w)}}shuffle(game.whiteDeck)
-function resetGame(){game={started:false,startTime:null,expiresAt:null,players:{},order:[],judgeIndex:0,blackDeck:shuffle((q.black||[]).slice()),whiteDeck:[],currentBlack:null,roundActive:false,submissions:{}};for(let i=0;i<50;i++){for(let w of (q.white||[])){game.whiteDeck.push(w)}};shuffle(game.whiteDeck);io.emit('gameReset')}
-function dealTo(player){while(player.hand.length<10&&game.whiteDeck.length>0){player.hand.push(game.whiteDeck.pop())}}
-app.use(express.static(path.join(__dirname,'public')))
-io.on('connection',socket=>{
-  socket.on('register',payload=>{
-    let playerId=payload.playerId
-    if(playerId&&game.players[playerId]){
-      game.players[playerId].socketId=socket.id
-      game.players[playerId].connected=true
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+}
+function drawAnswers(room, count) {
+  const deck = rooms[room].answerDeck
+  const drawn = []
+  for (let i = 0; i < count; i++) {
+    if (deck.length === 0) break
+    drawn.push(deck.pop())
+  }
+  return drawn
+}
+io.on('connection', socket => {
+  socket.on('createRoom', ({ name }) => {
+    const code = createRoom()
+    const r = rooms[code]
+    r.players[socket.id] = { id: socket.id, name: name || 'Jogador', hand: drawAnswers(code, 7), score: 0 }
+    r.order.push(socket.id)
+    socket.join(code)
+    io.to(code).emit('roomUpdate', { room: code, players: Object.values(r.players) })
+    socket.emit('roomCreated', { room: code })
+  })
+  socket.on('joinRoom', ({ room, name }) => {
+    const r = rooms[room]
+    if (!r) {
+      socket.emit('errorMsg', 'Sala não encontrada')
+      return
+    }
+    r.players[socket.id] = { id: socket.id, name: name || 'Jogador', hand: drawAnswers(room, 7), score: 0 }
+    r.order.push(socket.id)
+    socket.join(room)
+    io.to(room).emit('roomUpdate', { room: room, players: Object.values(r.players) })
+    socket.emit('joinedRoom', { room: room })
+  })
+  socket.on('startGame', ({ room }) => {
+    const r = rooms[room]
+    if (!r) return
+    r.started = true
+    shuffle(r.promptDeck)
+    shuffle(r.answerDeck)
+    r.czarIndex = 0
+    startRound(room)
+  })
+  function startRound(room) {
+    const r = rooms[room]
+    if (!r) return
+    r.submissions = {}
+    if (r.promptDeck.length === 0) r.promptDeck = [...sourceDeck.prompts]
+    const p = r.promptDeck.pop()
+    r.currentPrompt = p
+    const czarId = r.order[r.czarIndex % r.order.length]
+    io.to(room).emit('newRound', { prompt: p, czar: czarId, players: Object.values(r.players) })
+  }
+  socket.on('playCard', ({ room, card }) => {
+    const r = rooms[room]
+    if (!r) return
+    r.submissions[socket.id] = { id: socket.id, card }
+    const player = r.players[socket.id]
+    if (player) {
+      const idx = player.hand.indexOf(card)
+      if (idx !== -1) player.hand.splice(idx, 1)
+      const drawn = drawAnswers(room, 1)
+      if (drawn.length) player.hand.push(drawn[0])
+    }
+    const needed = Object.keys(r.players).filter(id => id !== r.order[r.czarIndex % r.order.length]).length
+    if (Object.keys(r.submissions).length >= needed) {
+      const subs = Object.values(r.submissions).map(s => ({ id: s.id, card: s.card }))
+      shuffle(subs)
+      io.to(room).emit('revealSubmissions', subs)
     } else {
-      playerId=Math.random().toString(36).slice(2,10)
-      game.players[playerId]={id:playerId,name:payload.name||'Anonymous',score:0,hand:[],socketId:socket.id,connected:true}
-      game.order.push(playerId)
-    }
-    dealTo(game.players[playerId])
-    socket.emit('registered',{playerId,player:game.players[playerId],gameState:{started:game.started,players:mapPlayers(),judgeId:game.order[game.judgeIndex]||null,expiresAt:game.expiresAt}})
-    io.emit('players',mapPlayers())
-  })
-  socket.on('setName',data=>{
-    if(!data.playerId||!game.players[data.playerId])return
-    game.players[data.playerId].name=data.name
-    io.emit('players',mapPlayers())
-  })
-  socket.on('startGame',data=>{
-    if(data.password!=='12345678')return
-    if(game.started)return
-    game.started=true
-    game.startTime=Date.now()
-    game.expiresAt=game.startTime+2*60*60*1000
-    for(let id of game.order){dealTo(game.players[id])}
-    game.currentBlack=game.blackDeck.pop()||null
-    io.emit('gameStarted',{judgeId:game.order[game.judgeIndex]||null,players:mapPlayers(),currentBlack:game.currentBlack,expiresAt:game.expiresAt})
-  })
-  socket.on('startRound',data=>{
-    const playerId=data.playerId
-    if(!playerId||game.order[game.judgeIndex]!==playerId)return
-    if(game.roundActive)return
-    game.roundActive=true
-    game.currentBlack=game.blackDeck.pop()||null
-    game.submissions={}
-    io.to(game.players[playerId].socketId).emit('showJudgeRound',{currentBlack:game.currentBlack})
-    for(let id of game.order){if(id!==playerId){io.to(game.players[id].socketId).emit('roundStarted',{currentBlack:game.currentBlack})}}
-  })
-  socket.on('submitCard',data=>{
-    const pid=data.playerId
-    const card=data.card
-    if(!pid||!game.players[pid]||!game.roundActive)return
-    if(game.order[game.judgeIndex]===pid)return
-    if(game.submissions[pid])return
-    const idx=game.players[pid].hand.indexOf(card)
-    if(idx>-1){game.players[pid].hand.splice(idx,1)}
-    game.submissions[pid]=card
-    dealTo(game.players[pid])
-    io.emit('players',mapPlayers())
-    if(checkAllSubmitted()){
-      const entries=Object.entries(game.submissions).map(([pid,card])=>({pid,card}))
-      shuffle(entries)
-      io.to(game.players[game.order[game.judgeIndex]].socketId).emit('judgeChoices',entries)
+      io.to(room).emit('submittedUpdate', { submitted: Object.keys(r.submissions).length })
     }
   })
-  socket.on('selectWinner',data=>{
-    const judgeId=data.playerId
-    if(game.order[game.judgeIndex]!==judgeId)return
-    const winnerPid=data.winnerPid
-    if(!winnerPid||!game.players[winnerPid])return
-    game.players[winnerPid].score=(game.players[winnerPid].score||0)+1
-    game.roundActive=false
-    game.submissions={}
-    if(game.order.length>0) game.judgeIndex=(game.judgeIndex+1)%game.order.length
-    io.emit('roundEnded',{winnerPid,players:mapPlayers(),nextJudge:game.order[game.judgeIndex]||null})
+  socket.on('chooseWinner', ({ room, winnerId }) => {
+    const r = rooms[room]
+    if (!r) return
+    if (!r.players[winnerId]) return
+    r.players[winnerId].score += 1
+    io.to(room).emit('roundResult', { winnerId, player: r.players[winnerId] })
+    r.czarIndex = (r.czarIndex + 1) % r.order.length
+    setTimeout(() => startRound(room), 2000)
   })
-  socket.on('disconnect',()=>{
-    const pid=findPlayerBySocket(socket.id)
-    if(pid){game.players[pid].connected=false}
-    io.emit('players',mapPlayers())
+  socket.on('getState', ({ room }) => {
+    const r = rooms[room]
+    if (!r) {
+      socket.emit('errorMsg', 'Sala não encontrada')
+      return
+    }
+    socket.emit('state', { players: Object.values(r.players), prompt: r.currentPrompt, started: r.started, czar: r.order[r.czarIndex % r.order.length] })
   })
+  socket.on('leaveRoom', ({ room }) => {
+    leave(socket, room)
+  })
+  socket.on('disconnect', () => {
+    for (const room of Object.keys(rooms)) {
+      if (rooms[room].players[socket.id]) leave(socket, room)
+    }
+  })
+  function leave(socket, room) {
+    const r = rooms[room]
+    if (!r) return
+    delete r.players[socket.id]
+    r.order = r.order.filter(id => id !== socket.id)
+    io.to(room).emit('roomUpdate', { room: room, players: Object.values(r.players) })
+    if (r.order.length === 0) delete rooms[room]
+  }
 })
-function findPlayerBySocket(sid){for(let id in game.players){if(game.players[id].socketId===sid)return id}return null}
-function mapPlayers(){const out=[];for(let id of game.order){const p=game.players[id];if(p)out.push({id:p.id,name:p.name,score:p.score,connected:p.connected,hand:p.hand})}return out}
-function checkAllSubmitted(){const judge=game.order[game.judgeIndex];for(let id of game.order){if(id===judge)continue; if(!game.submissions[id])return false}return true}
-setInterval(()=>{
-  if(game.started&&game.expiresAt&&Date.now()>game.expiresAt){resetGame()}
-},1000*30)
-const PORT=process.env.PORT||3000
+const PORT = process.env.PORT || 3000
 server.listen(PORT)

@@ -1,46 +1,38 @@
 <!doctype html>
 <html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-<title>Jogo</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div id="app">
-  <div id="screen1" class="screen">
-    <div class="topbar"></div>
-    <div class="card small">
-      <input id="nameInput" placeholder="nome">
-      <button id="confirmName">confirmar nome</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title></title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div class="topbar">
+        <div class="brand"></div>
+        <div class="controls">
+          <input id="nameInput" placeholder="Nome" maxlength="20" />
+          <button id="createBtn">Criar</button>
+          <input id="roomInput" placeholder="Código" maxlength="4" />
+          <button id="joinBtn">Entrar</button>
+        </div>
+      </div>
+      <main>
+        <section id="lobby" class="panel">
+          <h2>Sala</h2>
+          <div id="roomCode"></div>
+          <ul id="playersList"></ul>
+          <button id="startBtn">Iniciar</button>
+        </section>
+        <section id="game" class="panel hidden">
+          <div class="promptCard" id="promptCard"></div>
+          <div id="czarBanner"></div>
+          <div id="submissions" class="submissions"></div>
+          <div class="hand" id="hand"></div>
+        </section>
+      </main>
     </div>
-    <div class="playersList card"></div>
-    <div class="card small">
-      <input id="pwInput" placeholder="senha">
-      <button id="startGame">iniciar jogo</button>
-    </div>
-  </div>
-  <div id="screen2" class="screen hidden">
-    <div class="header">
-      <div class="scores"></div>
-      <div class="judgeInfo"></div>
-    </div>
-    <div class="hand card"></div>
-    <div class="controls card">
-      <button id="startRoundBtn">iniciar round</button>
-    </div>
-  </div>
-  <div id="screen3" class="screen hidden">
-    <div class="card blackCard"></div>
-    <div class="choices card"></div>
-    <div class="card small">
-      <button id="confirmChoice">confirmar resposta</button>
-    </div>
-  </div>
-</div>
-<script src="/socket.io/socket.io.js"></script>
-<script src="client.js"></script>
-</body>
+    <script src="client.js"></script>
+  </body>
 </html>

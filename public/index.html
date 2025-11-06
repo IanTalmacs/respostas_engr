@@ -10,35 +10,35 @@
 </head>
 <body>
 <div id="app">
-<div id="screen1" class="screen">
-<div class="topbar"></div>
-<div class="card small">
-<input id="nameInput" placeholder="nome">
-<button id="confirmName">confirmar nome</button>
-</div>
-<div class="playersList card"></div>
-<div class="card small">
-<input id="pwInput" placeholder="senha">
-<button id="startGame">iniciar jogo</button>
-</div>
-</div>
-<div id="screen2" class="screen hidden">
-<div class="header">
-<div class="scores"></div>
-<div class="judgeInfo"></div>
-</div>
-<div class="hand card"></div>
-<div class="controls card">
-<button id="startRoundBtn">iniciar round</button>
-</div>
-</div>
-<div id="screen3" class="screen hidden">
-<div class="card blackCard"></div>
-<div class="choices card"></div>
-<div class="card small">
-<button id="confirmChoice">confirmar resposta</button>
-</div>
-</div>
+  <div id="screen1" class="screen">
+    <div class="topbar"></div>
+    <div class="card small">
+      <input id="nameInput" placeholder="nome">
+      <button id="confirmName">confirmar nome</button>
+    </div>
+    <div class="playersList card"></div>
+    <div class="card small">
+      <input id="pwInput" placeholder="senha">
+      <button id="startGame">iniciar jogo</button>
+    </div>
+  </div>
+  <div id="screen2" class="screen hidden">
+    <div class="header">
+      <div class="scores"></div>
+      <div class="judgeInfo"></div>
+    </div>
+    <div class="hand card"></div>
+    <div class="controls card">
+      <button id="startRoundBtn">iniciar round</button>
+    </div>
+  </div>
+  <div id="screen3" class="screen hidden">
+    <div class="card blackCard"></div>
+    <div class="choices card"></div>
+    <div class="card small">
+      <button id="confirmChoice">confirmar resposta</button>
+    </div>
+  </div>
 </div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="client.js"></script>

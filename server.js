@@ -7,8 +7,22 @@ const app = express()
 const server = http.createServer(app)
 const io = new Server(server)
 app.use(express.static(path.join(__dirname, 'public')))
-const raw = fs.readFileSync(path.join(__dirname, 'public', 'questions.json'))
-const sourceDeck = JSON.parse(raw)
+const questionsPath = path.join(__dirname, 'public', 'questions.json')
+let sourceDeck = { prompts: [], answers: [] }
+try {
+  const raw = fs.readFileSync(questionsPath, 'utf8')
+  sourceDeck = JSON.parse(raw)
+  if (!Array.isArray(sourceDeck.prompts)) sourceDeck.prompts = []
+  if (!Array.isArray(sourceDeck.answers)) sourceDeck.answers = []
+} catch (err) {
+  try {
+    const fallback = { prompts: [], answers: [] }
+    fs.writeFileSync(questionsPath, JSON.stringify(fallback, null, 2), 'utf8')
+    sourceDeck = fallback
+  } catch (e) {
+    console.error('erro ao criar questions.json', e)
+  }
+}
 const rooms = {}
 function makeCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -81,10 +95,10 @@ io.on('connection', socket => {
     const r = rooms[room]
     if (!r) return
     r.submissions = {}
-    if (r.promptDeck.length === 0) r.promptDeck = [...sourceDeck.prompts]
-    const p = r.promptDeck.pop()
+    if (!Array.isArray(r.promptDeck) || r.promptDeck.length === 0) r.promptDeck = Array.isArray(sourceDeck.prompts) ? [...sourceDeck.prompts] : []
+    const p = r.promptDeck.length ? r.promptDeck.pop() : null
     r.currentPrompt = p
-    const czarId = r.order[r.czarIndex % r.order.length]
+    const czarId = r.order.length ? r.order[r.czarIndex % r.order.length] : null
     io.to(room).emit('newRound', { prompt: p, czar: czarId, players: Object.values(r.players) })
   }
   socket.on('playCard', ({ room, card }) => {
@@ -141,5 +155,14 @@ io.on('connection', socket => {
     if (r.order.length === 0) delete rooms[room]
   }
 })
+process.on('uncaughtException', err => {
+  console.error('uncaughtException', err)
+  process.exit(1)
+})
+process.on('unhandledRejection', err => {
+  console.error('unhandledRejection', err)
+})
 const PORT = process.env.PORT || 3000
-server.listen(PORT)
+server.listen(PORT, () => {
+  console.log('listening on', PORT)
+})

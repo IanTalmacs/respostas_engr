@@ -1,168 +1,263 @@
-const express = require('express')
-const http = require('http')
-const { Server } = require('socket.io')
-const fs = require('fs')
-const path = require('path')
-const app = express()
-const server = http.createServer(app)
-const io = new Server(server)
-app.use(express.static(path.join(__dirname, 'public')))
-const questionsPath = path.join(__dirname, 'public', 'questions.json')
-let sourceDeck = { prompts: [], answers: [] }
+const express = require('express');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer);
+
+app.use(express.static('public'));
+
+const PORT = process.env.PORT || 3000;
+
+let gameState = {
+  players: {},
+  currentCzar: null,
+  blackCard: null,
+  whiteCards: {},
+  submissions: {},
+  scores: {},
+  gameStarted: false,
+  roundPhase: 'waiting',
+  selectedWinner: null
+};
+
+let questions = { black: [], white: [] };
+
 try {
-  const raw = fs.readFileSync(questionsPath, 'utf8')
-  sourceDeck = JSON.parse(raw)
-  if (!Array.isArray(sourceDeck.prompts)) sourceDeck.prompts = []
-  if (!Array.isArray(sourceDeck.answers)) sourceDeck.answers = []
+  const data = fs.readFileSync(path.join(__dirname, 'public', 'questions.json'), 'utf8');
+  questions = JSON.parse(data);
 } catch (err) {
-  try {
-    const fallback = { prompts: [], answers: [] }
-    fs.writeFileSync(questionsPath, JSON.stringify(fallback, null, 2), 'utf8')
-    sourceDeck = fallback
-  } catch (e) {
-    console.error('erro ao criar questions.json', e)
+  console.log('questions.json not loaded');
+}
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function dealCards(playerId, count = 7) {
+  if (!gameState.whiteCards[playerId]) {
+    gameState.whiteCards[playerId] = [];
+  }
+  
+  const availableCards = questions.white.filter(
+    card => !Object.values(gameState.whiteCards).flat().includes(card)
+  );
+  
+  const shuffled = shuffleArray(availableCards);
+  const needed = count - gameState.whiteCards[playerId].length;
+  
+  for (let i = 0; i < needed && i < shuffled.length; i++) {
+    gameState.whiteCards[playerId].push(shuffled[i]);
   }
 }
-const rooms = {}
-function makeCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  let code = ''
-  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)]
-  return code
-}
-function createRoom() {
-  let code = makeCode()
-  while (rooms[code]) code = makeCode()
-  rooms[code] = {
-    players: {},
-    order: [],
-    czarIndex: 0,
-    promptDeck: Array.isArray(sourceDeck.prompts) ? [...sourceDeck.prompts] : [],
-    answerDeck: Array.isArray(sourceDeck.answers) ? [...sourceDeck.answers] : [],
-    currentPrompt: null,
-    submissions: {},
-    started: false
+
+function startNewRound() {
+  const playerIds = Object.keys(gameState.players);
+  
+  if (playerIds.length < 3) {
+    gameState.roundPhase = 'waiting';
+    return;
   }
-  return code
-}
-function shuffle(a) {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
+  
+  if (!gameState.currentCzar) {
+    gameState.currentCzar = playerIds[0];
+  } else {
+    const currentIndex = playerIds.indexOf(gameState.currentCzar);
+    gameState.currentCzar = playerIds[(currentIndex + 1) % playerIds.length];
   }
-}
-function drawAnswers(room, count) {
-  const deck = rooms[room].answerDeck
-  const drawn = []
-  for (let i = 0; i < count; i++) {
-    if (deck.length === 0) break
-    drawn.push(deck.pop())
+  
+  const usedBlackCards = gameState.usedBlackCards || [];
+  const availableBlackCards = questions.black.filter(card => !usedBlackCards.includes(card));
+  
+  if (availableBlackCards.length === 0) {
+    gameState.usedBlackCards = [];
+    gameState.blackCard = shuffleArray(questions.black)[0];
+  } else {
+    gameState.blackCard = shuffleArray(availableBlackCards)[0];
   }
-  return drawn
-}
-io.on('connection', socket => {
-  socket.on('createRoom', ({ name }) => {
-    const code = createRoom()
-    const r = rooms[code]
-    r.players[socket.id] = { id: socket.id, name: name || 'Jogador', hand: drawAnswers(code, 7), score: 0 }
-    r.order.push(socket.id)
-    socket.join(code)
-    io.to(code).emit('roomUpdate', { room: code, players: Object.values(r.players) })
-    socket.emit('roomCreated', { room: code })
-  })
-  socket.on('joinRoom', ({ room, name }) => {
-    const r = rooms[room]
-    if (!r) {
-      socket.emit('errorMsg', 'Sala não encontrada')
-      return
+  
+  if (!gameState.usedBlackCards) gameState.usedBlackCards = [];
+  gameState.usedBlackCards.push(gameState.blackCard);
+  
+  gameState.submissions = {};
+  gameState.selectedWinner = null;
+  gameState.roundPhase = 'playing';
+  
+  playerIds.forEach(id => {
+    if (id !== gameState.currentCzar) {
+      dealCards(id, 7);
     }
-    r.players[socket.id] = { id: socket.id, name: name || 'Jogador', hand: drawAnswers(room, 7), score: 0 }
-    r.order.push(socket.id)
-    socket.join(room)
-    io.to(room).emit('roomUpdate', { room: room, players: Object.values(r.players) })
-    socket.emit('joinedRoom', { room: room })
-  })
-  socket.on('startGame', ({ room }) => {
-    const r = rooms[room]
-    if (!r) return
-    r.started = true
-    shuffle(r.promptDeck)
-    shuffle(r.answerDeck)
-    r.czarIndex = 0
-    startRound(room)
-  })
-  function startRound(room) {
-    const r = rooms[room]
-    if (!r) return
-    r.submissions = {}
-    if (!Array.isArray(r.promptDeck) || r.promptDeck.length === 0) r.promptDeck = Array.isArray(sourceDeck.prompts) ? [...sourceDeck.prompts] : []
-    const p = r.promptDeck.length ? r.promptDeck.pop() : null
-    r.currentPrompt = p
-    const czarId = r.order.length ? r.order[r.czarIndex % r.order.length] : null
-    io.to(room).emit('newRound', { prompt: p, czar: czarId, players: Object.values(r.players) })
-  }
-  socket.on('playCard', ({ room, card }) => {
-    const r = rooms[room]
-    if (!r) return
-    r.submissions[socket.id] = { id: socket.id, card }
-    const player = r.players[socket.id]
-    if (player) {
-      const idx = player.hand.indexOf(card)
-      if (idx !== -1) player.hand.splice(idx, 1)
-      const drawn = drawAnswers(room, 1)
-      if (drawn.length) player.hand.push(drawn[0])
+  });
+}
+
+io.on('connection', (socket) => {
+  
+  socket.on('join', (playerName) => {
+    gameState.players[socket.id] = playerName;
+    gameState.scores[socket.id] = gameState.scores[socket.id] || 0;
+    gameState.whiteCards[socket.id] = [];
+    
+    if (gameState.gameStarted && gameState.roundPhase === 'playing') {
+      dealCards(socket.id, 7);
     }
-    const needed = Object.keys(r.players).filter(id => id !== r.order[r.czarIndex % r.order.length]).length
-    if (Object.keys(r.submissions).length >= needed) {
-      const subs = Object.values(r.submissions).map(s => ({ id: s.id, card: s.card }))
-      shuffle(subs)
-      io.to(room).emit('revealSubmissions', subs)
-    } else {
-      io.to(room).emit('submittedUpdate', { submitted: Object.keys(r.submissions).length })
+    
+    io.emit('gameState', {
+      players: gameState.players,
+      scores: gameState.scores,
+      currentCzar: gameState.currentCzar,
+      blackCard: gameState.blackCard,
+      roundPhase: gameState.roundPhase,
+      gameStarted: gameState.gameStarted,
+      submissionCount: Object.keys(gameState.submissions).length,
+      totalPlayers: Object.keys(gameState.players).length - 1
+    });
+    
+    socket.emit('yourCards', gameState.whiteCards[socket.id]);
+  });
+  
+  socket.on('startGame', () => {
+    if (Object.keys(gameState.players).length >= 3) {
+      gameState.gameStarted = true;
+      
+      Object.keys(gameState.players).forEach(id => {
+        dealCards(id, 7);
+      });
+      
+      startNewRound();
+      
+      io.emit('gameState', {
+        players: gameState.players,
+        scores: gameState.scores,
+        currentCzar: gameState.currentCzar,
+        blackCard: gameState.blackCard,
+        roundPhase: gameState.roundPhase,
+        gameStarted: gameState.gameStarted,
+        submissionCount: 0,
+        totalPlayers: Object.keys(gameState.players).length - 1
+      });
+      
+      Object.keys(gameState.players).forEach(id => {
+        io.to(id).emit('yourCards', gameState.whiteCards[id]);
+      });
     }
-  })
-  socket.on('chooseWinner', ({ room, winnerId }) => {
-    const r = rooms[room]
-    if (!r) return
-    if (!r.players[winnerId]) return
-    r.players[winnerId].score += 1
-    io.to(room).emit('roundResult', { winnerId, player: r.players[winnerId] })
-    r.czarIndex = (r.czarIndex + 1) % r.order.length
-    setTimeout(() => startRound(room), 2000)
-  })
-  socket.on('getState', ({ room }) => {
-    const r = rooms[room]
-    if (!r) {
-      socket.emit('errorMsg', 'Sala não encontrada')
-      return
+  });
+  
+  socket.on('submitCard', (cardIndex) => {
+    if (socket.id === gameState.currentCzar || gameState.roundPhase !== 'playing') {
+      return;
     }
-    socket.emit('state', { players: Object.values(r.players), prompt: r.currentPrompt, started: r.started, czar: r.order[r.czarIndex % r.order.length] })
-  })
-  socket.on('leaveRoom', ({ room }) => {
-    leave(socket, room)
-  })
+    
+    const card = gameState.whiteCards[socket.id][cardIndex];
+    if (card) {
+      gameState.submissions[socket.id] = card;
+      gameState.whiteCards[socket.id].splice(cardIndex, 1);
+      
+      io.emit('gameState', {
+        players: gameState.players,
+        scores: gameState.scores,
+        currentCzar: gameState.currentCzar,
+        blackCard: gameState.blackCard,
+        roundPhase: gameState.roundPhase,
+        gameStarted: gameState.gameStarted,
+        submissionCount: Object.keys(gameState.submissions).length,
+        totalPlayers: Object.keys(gameState.players).length - 1
+      });
+      
+      socket.emit('yourCards', gameState.whiteCards[socket.id]);
+      
+      const nonCzarPlayers = Object.keys(gameState.players).filter(id => id !== gameState.currentCzar);
+      if (Object.keys(gameState.submissions).length === nonCzarPlayers.length) {
+        gameState.roundPhase = 'judging';
+        
+        const shuffledSubmissions = shuffleArray(Object.entries(gameState.submissions));
+        
+        io.emit('gameState', {
+          players: gameState.players,
+          scores: gameState.scores,
+          currentCzar: gameState.currentCzar,
+          blackCard: gameState.blackCard,
+          roundPhase: gameState.roundPhase,
+          gameStarted: gameState.gameStarted,
+          submissions: shuffledSubmissions
+        });
+      }
+    }
+  });
+  
+  socket.on('selectWinner', (playerId) => {
+    if (socket.id !== gameState.currentCzar || gameState.roundPhase !== 'judging') {
+      return;
+    }
+    
+    gameState.scores[playerId] = (gameState.scores[playerId] || 0) + 1;
+    gameState.selectedWinner = playerId;
+    gameState.roundPhase = 'roundEnd';
+    
+    io.emit('roundWinner', {
+      winnerId: playerId,
+      winnerName: gameState.players[playerId],
+      winningCard: gameState.submissions[playerId],
+      scores: gameState.scores
+    });
+    
+    setTimeout(() => {
+      startNewRound();
+      
+      io.emit('gameState', {
+        players: gameState.players,
+        scores: gameState.scores,
+        currentCzar: gameState.currentCzar,
+        blackCard: gameState.blackCard,
+        roundPhase: gameState.roundPhase,
+        gameStarted: gameState.gameStarted,
+        submissionCount: 0,
+        totalPlayers: Object.keys(gameState.players).length - 1
+      });
+      
+      Object.keys(gameState.players).forEach(id => {
+        io.to(id).emit('yourCards', gameState.whiteCards[id]);
+      });
+    }, 4000);
+  });
+  
   socket.on('disconnect', () => {
-    for (const room of Object.keys(rooms)) {
-      if (rooms[room].players[socket.id]) leave(socket, room)
+    delete gameState.players[socket.id];
+    delete gameState.whiteCards[socket.id];
+    delete gameState.submissions[socket.id];
+    
+    if (socket.id === gameState.currentCzar) {
+      gameState.currentCzar = null;
+      if (gameState.gameStarted && Object.keys(gameState.players).length >= 3) {
+        startNewRound();
+      }
     }
-  })
-  function leave(socket, room) {
-    const r = rooms[room]
-    if (!r) return
-    delete r.players[socket.id]
-    r.order = r.order.filter(id => id !== socket.id)
-    io.to(room).emit('roomUpdate', { room: room, players: Object.values(r.players) })
-    if (r.order.length === 0) delete rooms[room]
-  }
-})
-process.on('uncaughtException', err => {
-  console.error('uncaughtException', err)
-  process.exit(1)
-})
-process.on('unhandledRejection', err => {
-  console.error('unhandledRejection', err)
-})
-const PORT = process.env.PORT || 3000
-server.listen(PORT, () => {
-  console.log('listening on', PORT)
-})
+    
+    if (Object.keys(gameState.players).length < 3) {
+      gameState.gameStarted = false;
+      gameState.roundPhase = 'waiting';
+    }
+    
+    io.emit('gameState', {
+      players: gameState.players,
+      scores: gameState.scores,
+      currentCzar: gameState.currentCzar,
+      blackCard: gameState.blackCard,
+      roundPhase: gameState.roundPhase,
+      gameStarted: gameState.gameStarted,
+      submissionCount: Object.keys(gameState.submissions).length,
+      totalPlayers: Object.keys(gameState.players).length - 1
+    });
+  });
+});
+
+httpServer.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});w

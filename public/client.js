@@ -1,109 +1,206 @@
-const socket = io()
-let currentRoom = null
-let myId = null
-const nameInput = document.getElementById('nameInput')
-const createBtn = document.getElementById('createBtn')
-const joinBtn = document.getElementById('joinBtn')
-const roomInput = document.getElementById('roomInput')
-const roomCodeEl = document.getElementById('roomCode')
-const playersList = document.getElementById('playersList')
-const startBtn = document.getElementById('startBtn')
-const lobby = document.getElementById('lobby')
-const game = document.getElementById('game')
-const promptCard = document.getElementById('promptCard')
-const handEl = document.getElementById('hand')
-const submissionsEl = document.getElementById('submissions')
-const czarBanner = document.getElementById('czarBanner')
-createBtn.addEventListener('click', () => {
-  const name = nameInput.value.trim() || 'Jogador'
-  socket.emit('createRoom', { name })
-})
+const socket = io();
+
+let myId = null;
+let myCards = [];
+let gameState = null;
+
+const nameScreen = document.getElementById('nameScreen');
+const lobbyScreen = document.getElementById('lobbyScreen');
+const gameScreen = document.getElementById('gameScreen');
+const nameInput = document.getElementById('nameInput');
+const joinBtn = document.getElementById('joinBtn');
+const startBtn = document.getElementById('startBtn');
+const playersList = document.getElementById('playersList');
+const blackCard = document.getElementById('blackCard');
+const czarInfo = document.getElementById('czarInfo');
+const statusInfo = document.getElementById('statusInfo');
+const whiteCardsContainer = document.getElementById('whiteCardsContainer');
+const scoresContainer = document.getElementById('scores');
+const submissionsContainer = document.getElementById('submissionsContainer');
+const winnerAnnouncement = document.getElementById('winnerAnnouncement');
+
 joinBtn.addEventListener('click', () => {
-  const name = nameInput.value.trim() || 'Jogador'
-  const room = (roomInput.value || '').toUpperCase()
-  if (!room) return
-  socket.emit('joinRoom', { room, name })
-})
-socket.on('roomCreated', ({ room }) => {
-  currentRoom = room
-  roomCodeEl.textContent = room
-  lobby.classList.remove('hidden')
-  game.classList.add('hidden')
-})
-socket.on('joinedRoom', ({ room }) => {
-  currentRoom = room
-  roomCodeEl.textContent = room
-})
-socket.on('roomUpdate', ({ room, players }) => {
-  playersList.innerHTML = ''
-  players.forEach(p => {
-    const li = document.createElement('li')
-    li.textContent = p.name
-    const sp = document.createElement('span')
-    sp.textContent = p.score || 0
-    li.appendChild(sp)
-    playersList.appendChild(li)
-    if (p.id === socket.id) myId = p.id
-  })
-})
+  const name = nameInput.value.trim();
+  if (name) {
+    socket.emit('join', name);
+    nameScreen.classList.add('hidden');
+    lobbyScreen.classList.remove('hidden');
+  }
+});
+
+nameInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    joinBtn.click();
+  }
+});
+
 startBtn.addEventListener('click', () => {
-  if (!currentRoom) return
-  socket.emit('startGame', { room: currentRoom })
-})
-socket.on('newRound', ({ prompt, czar, players }) => {
-  lobby.classList.add('hidden')
-  game.classList.remove('hidden')
-  promptCard.textContent = prompt || ''
-  czarBanner.textContent = czar === socket.id ? 'Você é o czar' : 'Czar: ' + players.find(p => p.id === czar)?.name
-  handEl.innerHTML = ''
-  const me = players.find(p => p.id === socket.id)
-  if (me && me.hand) renderHand(me.hand)
-  submissionsEl.innerHTML = ''
-})
-function renderHand(hand){
-  handEl.innerHTML = ''
-  hand.forEach(c => {
-    const d = document.createElement('div')
-    d.className = 'card'
-    d.textContent = c
-    d.addEventListener('click', () => {
-      if (!currentRoom) return
-      socket.emit('playCard', { room: currentRoom, card: c })
-    })
-    handEl.appendChild(d)
-  })
+  socket.emit('startGame');
+});
+
+socket.on('connect', () => {
+  myId = socket.id;
+});
+
+socket.on('gameState', (state) => {
+  gameState = state;
+  
+  updateScores();
+  
+  if (state.gameStarted) {
+    lobbyScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    
+    blackCard.textContent = state.blackCard || '';
+    
+    const isCzar = myId === state.currentCzar;
+    const czarName = state.players[state.currentCzar];
+    
+    if (isCzar) {
+      czarInfo.textContent = '👑 você é o juiz desta rodada';
+    } else {
+      czarInfo.textContent = `👑 ${czarName} é o juiz`;
+    }
+    
+    if (state.roundPhase === 'playing') {
+      submissionsContainer.classList.add('hidden');
+      whiteCardsContainer.classList.remove('hidden');
+      
+      if (isCzar) {
+        statusInfo.textContent = 'aguardando respostas...';
+      } else {
+        statusInfo.textContent = `${state.submissionCount}/${state.totalPlayers} respostas enviadas`;
+      }
+    } else if (state.roundPhase === 'judging') {
+      whiteCardsContainer.classList.add('hidden');
+      submissionsContainer.classList.remove('hidden');
+      
+      if (isCzar) {
+        statusInfo.textContent = 'escolha a melhor resposta';
+      } else {
+        statusInfo.textContent = 'aguardando o juiz escolher...';
+      }
+      
+      renderSubmissions(state.submissions, isCzar);
+    }
+  } else {
+    updateLobby(state);
+  }
+});
+
+socket.on('yourCards', (cards) => {
+  myCards = cards;
+  renderCards();
+});
+
+socket.on('roundWinner', (data) => {
+  winnerAnnouncement.classList.remove('hidden');
+  winnerAnnouncement.querySelector('h2').textContent = `${data.winnerName} venceu!`;
+  winnerAnnouncement.querySelector('.winner-card').textContent = data.winningCard;
+  
+  setTimeout(() => {
+    winnerAnnouncement.classList.add('hidden');
+  }, 3500);
+});
+
+function updateLobby(state) {
+  playersList.innerHTML = '';
+  
+  Object.entries(state.players).forEach(([id, name]) => {
+    const item = document.createElement('div');
+    item.className = 'player-item';
+    
+    const avatar = document.createElement('div');
+    avatar.className = 'player-avatar';
+    avatar.textContent = name.charAt(0).toUpperCase();
+    
+    const nameEl = document.createElement('div');
+    nameEl.className = 'player-name';
+    nameEl.textContent = name;
+    
+    const score = document.createElement('div');
+    score.className = 'player-score';
+    score.textContent = `${state.scores[id] || 0} pts`;
+    
+    item.appendChild(avatar);
+    item.appendChild(nameEl);
+    item.appendChild(score);
+    playersList.appendChild(item);
+  });
+  
+  const playerCount = Object.keys(state.players).length;
+  startBtn.disabled = playerCount < 3;
+  
+  if (playerCount < 3) {
+    document.querySelector('.wait-text').style.display = 'block';
+  } else {
+    document.querySelector('.wait-text').style.display = 'none';
+  }
 }
-socket.on('revealSubmissions', subs => {
-  submissionsEl.innerHTML = ''
-  subs.forEach(s => {
-    const d = document.createElement('div')
-    d.className = 'card'
-    d.textContent = s.card
-    if (socket.id === s.id) d.style.outline = '2px solid var(--accent)'
-    d.addEventListener('click', () => {
-      socket.emit('chooseWinner', { room: currentRoom, winnerId: s.id })
-    })
-    submissionsEl.appendChild(d)
-  })
-})
-socket.on('submittedUpdate', ({ submitted }) => {
-  czarBanner.textContent = `Aguardando ${submitted} / ?`
-})
-socket.on('roundResult', ({ winnerId, player }) => {
-  czarBanner.textContent = `${player.name} venceu`
-  socket.emit('getState', { room: currentRoom })
-})
-socket.on('state', ({ players, prompt, started, czar }) => {
-  const me = players.find(p => p.id === socket.id)
-  if (me && me.hand) renderHand(me.hand)
-  playersList.innerHTML = ''
-  players.forEach(p => {
-    const li = document.createElement('li')
-    li.textContent = p.name
-    const sp = document.createElement('span')
-    sp.textContent = p.score || 0
-    li.appendChild(sp)
-    playersList.appendChild(li)
-  })
-})
-socket.on('errorMsg', msg => alert(msg))
+
+function updateScores() {
+  if (!gameState) return;
+  
+  scoresContainer.innerHTML = '';
+  
+  Object.entries(gameState.players).forEach(([id, name]) => {
+    const item = document.createElement('div');
+    item.className = 'score-item';
+    
+    if (id === gameState.currentCzar) {
+      item.classList.add('czar');
+    }
+    
+    const nameEl = document.createElement('span');
+    nameEl.textContent = name;
+    
+    const scoreEl = document.createElement('span');
+    scoreEl.className = 'score-value';
+    scoreEl.textContent = gameState.scores[id] || 0;
+    
+    item.appendChild(nameEl);
+    item.appendChild(scoreEl);
+    scoresContainer.appendChild(item);
+  });
+}
+
+function renderCards() {
+  whiteCardsContainer.innerHTML = '';
+  
+  const isCzar = myId === gameState?.currentCzar;
+  const hasSubmitted = gameState?.submissions && gameState.submissions[myId];
+  
+  myCards.forEach((card, index) => {
+    const cardEl = document.createElement('div');
+    cardEl.className = 'white-card';
+    cardEl.textContent = card;
+    
+    if (isCzar || hasSubmitted) {
+      cardEl.classList.add('disabled');
+    } else {
+      cardEl.addEventListener('click', () => {
+        socket.emit('submitCard', index);
+      });
+    }
+    
+    whiteCardsContainer.appendChild(cardEl);
+  });
+}
+
+function renderSubmissions(submissions, isCzar) {
+  submissionsContainer.innerHTML = '';
+  
+  submissions.forEach(([playerId, card]) => {
+    const cardEl = document.createElement('div');
+    cardEl.className = 'submission-card';
+    cardEl.textContent = card;
+    
+    if (isCzar) {
+      cardEl.addEventListener('click', () => {
+        socket.emit('selectWinner', playerId);
+      });
+    }
+    
+    submissionsContainer.appendChild(cardEl);
+  });
+}

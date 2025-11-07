@@ -1,21 +1,380 @@
-:root{--bg:#121212;--card:#181818;--muted:#b3b3b3;--accent:#1db954}
-*{box-sizing:border-box}
-html,body,#app{height:100%}
-body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;background:linear-gradient(180deg,#0f0f0f, #121212)}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px}
-.brand{width:36px;height:36px;border-radius:6px;background:linear-gradient(135deg,var(--accent),#1ed760)}
-.controls{display:flex;gap:8px;align-items:center}
-.controls input{background:transparent;border:1px solid #222;padding:8px;border-radius:6px;color:var(--muted)}
-.controls button{background:var(--accent);border:none;padding:8px 10px;border-radius:6px;color:#000;font-weight:600}
-main{padding:16px}
-.panel{background:rgba(255,255,255,0.02);padding:12px;border-radius:12px}
-.hidden{display:none}
-#playersList{list-style:none;padding:0;margin:8px 0}
-#playersList li{display:flex;justify-content:space-between;padding:8px;background:rgba(255,255,255,0.03);margin-bottom:8px;border-radius:8px}
-.promptCard{padding:18px;border-radius:12px;background:linear-gradient(180deg,#222, #181818);font-size:18px;margin-bottom:12px}
-.hand{display:flex;gap:8px;overflow:auto;padding:8px}
-.hand .card{min-width:120px;padding:12px;border-radius:10px;background:var(--card);text-align:center}
-.submissions{display:flex;flex-wrap:wrap;gap:8px}
-.submissions .card{padding:12px;border-radius:10px;background:#222;min-width:120px}
-#czarBanner{padding:8px;color:var(--muted);margin-bottom:8px}
-@media (max-width:600px){.controls{flex-direction:column;align-items:flex-end}.hand .card{min-width:140px}}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  background: #121212;
+  color: #ffffff;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.name-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  gap: 24px;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(29, 185, 84, 0.4);
+}
+
+#nameInput {
+  width: 100%;
+  max-width: 320px;
+  padding: 16px 20px;
+  background: #282828;
+  border: 2px solid #404040;
+  border-radius: 24px;
+  color: #ffffff;
+  font-size: 16px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+#nameInput:focus {
+  outline: none;
+  border-color: #1db954;
+  background: #333333;
+}
+
+button {
+  width: 100%;
+  max-width: 320px;
+  padding: 16px 32px;
+  background: #1db954;
+  color: #000000;
+  border: none;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: lowercase;
+}
+
+button:hover {
+  background: #1ed760;
+  transform: scale(1.02);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  background: #404040;
+  color: #888888;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.lobby-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 20px;
+}
+
+.players-list {
+  flex: 1;
+  background: #181818;
+  border-radius: 16px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.players-list h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  color: #b3b3b3;
+  text-transform: lowercase;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #282828;
+}
+
+.player-item:last-child {
+  border-bottom: none;
+}
+
+.player-avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #000000;
+}
+
+.player-name {
+  flex: 1;
+  font-size: 16px;
+}
+
+.player-score {
+  font-size: 14px;
+  color: #b3b3b3;
+}
+
+.start-btn {
+  max-width: none;
+}
+
+.wait-text {
+  text-align: center;
+  color: #b3b3b3;
+  font-size: 14px;
+}
+
+.game-header {
+  padding: 16px 20px;
+  background: #181818;
+  border-bottom: 1px solid #282828;
+}
+
+.scores {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.scores::-webkit-scrollbar {
+  height: 4px;
+}
+
+.scores::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 4px;
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #282828;
+  border-radius: 12px;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.score-item.czar {
+  background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
+  color: #000000;
+  font-weight: 700;
+}
+
+.score-value {
+  color: #b3b3b3;
+}
+
+.score-item.czar .score-value {
+  color: #000000;
+}
+
+.black-card-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.black-card {
+  background: #000000;
+  border-radius: 16px;
+  padding: 24px;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.czar-info, .status-info {
+  text-align: center;
+  font-size: 14px;
+  color: #b3b3b3;
+}
+
+.white-cards-container {
+  padding: 0 20px 20px 20px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 20px;
+}
+
+.white-cards-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.white-cards-container::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 8px;
+}
+
+.white-card {
+  min-width: 160px;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.white-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(29, 185, 84, 0.3);
+}
+
+.white-card:active {
+  transform: translateY(-2px);
+}
+
+.white-card.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.white-card.disabled:hover {
+  transform: none;
+}
+
+.submissions-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.submission-card {
+  background: #ffffff;
+  color: #000000;
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.submission-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 16px rgba(29, 185, 84, 0.3);
+}
+
+.submission-card:active {
+  transform: translateX(2px);
+}
+
+.winner-announcement {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.winner-content {
+  padding: 32px;
+  text-align: center;
+  max-width: 90%;
+}
+
+.winner-content h2 {
+  font-size: 24px;
+  color: #1db954;
+  margin-bottom: 20px;
+  text-transform: lowercase;
+}
+
+.winner-card {
+  background: #ffffff;
+  color: #000000;
+  border-radius: 16px;
+  padding: 24px;
+  font-size: 18px;
+  line-height: 1.4;
+  box-shadow: 0 8px 24px rgba(29, 185, 84, 0.4);
+}
+
+@media (min-width: 768px) {
+  .name-container {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  
+  .lobby-container {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .game-header, .black-card-container, .white-cards-container, .submissions-container {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

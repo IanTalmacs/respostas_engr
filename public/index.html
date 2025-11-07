@@ -1,38 +1,55 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title></title>
-    <link rel="stylesheet" href="style.css" />
-    <script src="/socket.io/socket.io.js"></script>
-  </head>
-  <body>
-    <div id="app">
-      <div class="topbar">
-        <div class="brand"></div>
-        <div class="controls">
-          <input id="nameInput" placeholder="Nome" maxlength="20" />
-          <button id="createBtn">Criar</button>
-          <input id="roomInput" placeholder="Código" maxlength="4" />
-          <button id="joinBtn">Entrar</button>
-        </div>
-      </div>
-      <main>
-        <section id="lobby" class="panel">
-          <h2>Sala</h2>
-          <div id="roomCode"></div>
-          <ul id="playersList"></ul>
-          <button id="startBtn">Iniciar</button>
-        </section>
-        <section id="game" class="panel hidden">
-          <div class="promptCard" id="promptCard"></div>
-          <div id="czarBanner"></div>
-          <div id="submissions" class="submissions"></div>
-          <div class="hand" id="hand"></div>
-        </section>
-      </main>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Play</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="nameScreen" class="screen">
+    <div class="name-container">
+      <div class="logo"></div>
+      <input type="text" id="nameInput" placeholder="seu nome" maxlength="20">
+      <button id="joinBtn">entrar</button>
     </div>
-    <script src="client.js"></script>
-  </body>
+  </div>
+
+  <div id="lobbyScreen" class="screen hidden">
+    <div class="lobby-container">
+      <div class="players-list">
+        <h2>jogadores</h2>
+        <div id="playersList"></div>
+      </div>
+      <button id="startBtn" class="start-btn">começar jogo</button>
+      <p class="wait-text">aguardando jogadores... (mínimo 3)</p>
+    </div>
+  </div>
+
+  <div id="gameScreen" class="screen hidden">
+    <div class="game-header">
+      <div class="scores" id="scores"></div>
+    </div>
+
+    <div class="black-card-container">
+      <div class="black-card" id="blackCard"></div>
+      <p class="czar-info" id="czarInfo"></p>
+      <p class="status-info" id="statusInfo"></p>
+    </div>
+
+    <div id="submissionsContainer" class="submissions-container hidden"></div>
+
+    <div class="white-cards-container" id="whiteCardsContainer"></div>
+
+    <div id="winnerAnnouncement" class="winner-announcement hidden">
+      <div class="winner-content">
+        <h2></h2>
+        <p class="winner-card"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
 </html>

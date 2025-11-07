@@ -1,5 +1,6 @@
 {
-  "black": ["É uma pena que os jovens hoje estão se envolvendo com ___",
+  "black": [
+"É uma pena que os jovens hoje estão se envolvendo com ___",
 "O médico me disse que foi um milagre, mas de agora em diante, nada de ___",
 "Um jantar romântico não estaria completo sem ___",
 "Tenho muitos problemas, mas ___ não é um deles",
@@ -37,10 +38,12 @@
 "A FIFA baniu ___ por dar uma vantagem injusta nos jogos.",
 "___ estragou meu primeiro encontro",
 "Após morar 6 anos na China, descobri que eu prefiro ___",
-"O que fica mais legal com o passar do tempo?"
+"O que fica mais legal com o passar do tempo?",
 "___ me faz peidar impulsivamente"
+ 
 ],
-  "white": ["Uma playlist cheia de boleros",
+  "white": [
+  "Uma playlist cheia de boleros",
 "O computador que Stephen Hawking usava para falar",
 "Catarro, muito catarro",
 "Um futuro onde o Paraguai é uma potência nuclear",

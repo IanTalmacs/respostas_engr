@@ -64,7 +64,7 @@ let questions = {
 "A FIFA baniu ___ por dar uma vantagem injusta nos jogos.",
 "___ estragou meu primeiro encontro",
 "Após morar 6 anos na China, descobri que eu prefiro ___",
-"O que fica mais legal com o passar do tempo?"
+"O que fica mais legal com o passar do tempo?",
 "___ me faz peidar impulsivamente"
   ], 
   white: [

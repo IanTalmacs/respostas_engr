@@ -65,12 +65,17 @@ socket.on('gameState', (state) => {
       czarInfo.textContent = `👑 ${czarName} é o juiz`;
     }
     
+    const hasSubmitted = state.submissions && state.submissions.some(([id]) => id === myId);
+    
     if (state.roundPhase === 'playing') {
       submissionsContainer.classList.add('hidden');
       
       if (state.isCzar) {
         whiteCardsContainer.classList.add('hidden');
         statusInfo.textContent = 'aguardando respostas...';
+      } else if (hasSubmitted) {
+        whiteCardsContainer.classList.add('hidden');
+        statusInfo.textContent = 'aguardando o juiz...';
       } else {
         whiteCardsContainer.classList.remove('hidden');
         statusInfo.textContent = `${state.submissionCount}/${state.totalPlayers} respostas enviadas`;

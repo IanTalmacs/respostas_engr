@@ -26,10 +26,10 @@ let gameState = {
 
 let questions = { 
   black: [
-   
+
   ], 
   white: [
-   
+
   ] 
 };
 
@@ -55,7 +55,7 @@ function shuffleArray(array) {
   return arr;
 }
 
-function dealCards(playerId, count = 9) {
+function dealCards(playerId, count = 8) {
   if (!gameState.whiteCards[playerId]) {
     gameState.whiteCards[playerId] = [];
   }
@@ -106,7 +106,7 @@ function startNewRound() {
   
   playerIds.forEach(id => {
     if (id !== gameState.currentCzar) {
-      dealCards(id, 9);
+      dealCards(id, 8);
     }
   });
 }
@@ -124,12 +124,15 @@ function broadcastGameState() {
       gameStarted: gameState.gameStarted,
       submissionCount: Object.keys(gameState.submissions).length,
       totalPlayers: Object.keys(gameState.players).length - 1,
-      isCzar: isCzar
+      isCzar: isCzar,
+      submissions: []
     };
     
-    if (isCzar && gameState.roundPhase === 'judging') {
+    if (gameState.roundPhase === 'judging' && isCzar) {
       const shuffledSubmissions = shuffleArray(Object.entries(gameState.submissions));
       stateForPlayer.submissions = shuffledSubmissions;
+    } else if (gameState.roundPhase === 'playing') {
+      stateForPlayer.submissions = Object.entries(gameState.submissions);
     }
     
     io.to(playerId).emit('gameState', stateForPlayer);
@@ -144,7 +147,7 @@ io.on('connection', (socket) => {
     gameState.whiteCards[socket.id] = [];
     
     if (gameState.gameStarted && gameState.roundPhase === 'playing') {
-      dealCards(socket.id, 9);
+      dealCards(socket.id, 8);
     }
     
     broadcastGameState();
@@ -157,7 +160,7 @@ io.on('connection', (socket) => {
       gameState.gameStarted = true;
       
       Object.keys(gameState.players).forEach(id => {
-        dealCards(id, 9);
+        dealCards(id, 8);
       });
       
       startNewRound();

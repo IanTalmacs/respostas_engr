@@ -55,7 +55,7 @@ function shuffleArray(array) {
   return arr;
 }
 
-function dealCards(playerId, count = 7) {
+function dealCards(playerId, count = 9) {
   if (!gameState.whiteCards[playerId]) {
     gameState.whiteCards[playerId] = [];
   }
@@ -106,7 +106,7 @@ function startNewRound() {
   
   playerIds.forEach(id => {
     if (id !== gameState.currentCzar) {
-      dealCards(id, 7);
+      dealCards(id, 9);
     }
   });
 }
@@ -144,7 +144,7 @@ io.on('connection', (socket) => {
     gameState.whiteCards[socket.id] = [];
     
     if (gameState.gameStarted && gameState.roundPhase === 'playing') {
-      dealCards(socket.id, 7);
+      dealCards(socket.id, 9);
     }
     
     broadcastGameState();
@@ -157,7 +157,7 @@ io.on('connection', (socket) => {
       gameState.gameStarted = true;
       
       Object.keys(gameState.players).forEach(id => {
-        dealCards(id, 7);
+        dealCards(id, 9);
       });
       
       startNewRound();

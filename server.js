@@ -26,23 +26,10 @@ let gameState = {
 
 let questions = { 
   black: [
-    "___? Tem um aplicativo para isso.",
-    "O que me ajuda a dormir?",
-    "Qual é o meu segredo inconfessável?",
-    "Por que não consigo dormir à noite?",
-    "O que é isso? ___!"
+   
   ], 
   white: [
-    "Dançar como se ninguém estivesse vendo",
-    "Problemas com raiva",
-    "Netflix e pizza",
-    "Minha alma",
-    "Procrastinação extrema",
-    "Café demais",
-    "Memes às 3 da manhã",
-    "Chocolate escondido",
-    "Vergonha alheia",
-    "Cantar no chuveiro"
+   
   ] 
 };
 

@@ -26,9 +26,23 @@ let gameState = {
 
 let questions = { 
   black: [
+    "___? Tem um aplicativo para isso.",
+    "O que me ajuda a dormir?",
+    "Qual é o meu segredo inconfessável?",
+    "Por que não consigo dormir à noite?",
+    "O que é isso? ___!"
   ], 
   white: [
-
+    "Dançar como se ninguém estivesse vendo",
+    "Problemas com raiva",
+    "Netflix e pizza",
+    "Minha alma",
+    "Procrastinação extrema",
+    "Café demais",
+    "Memes às 3 da manhã",
+    "Chocolate escondido",
+    "Vergonha alheia",
+    "Cantar no chuveiro"
   ] 
 };
 
@@ -110,6 +124,31 @@ function startNewRound() {
   });
 }
 
+function broadcastGameState() {
+  Object.keys(gameState.players).forEach(playerId => {
+    const isCzar = playerId === gameState.currentCzar;
+    
+    const stateForPlayer = {
+      players: gameState.players,
+      scores: gameState.scores,
+      currentCzar: gameState.currentCzar,
+      blackCard: isCzar ? gameState.blackCard : null,
+      roundPhase: gameState.roundPhase,
+      gameStarted: gameState.gameStarted,
+      submissionCount: Object.keys(gameState.submissions).length,
+      totalPlayers: Object.keys(gameState.players).length - 1,
+      isCzar: isCzar
+    };
+    
+    if (isCzar && gameState.roundPhase === 'judging') {
+      const shuffledSubmissions = shuffleArray(Object.entries(gameState.submissions));
+      stateForPlayer.submissions = shuffledSubmissions;
+    }
+    
+    io.to(playerId).emit('gameState', stateForPlayer);
+  });
+}
+
 io.on('connection', (socket) => {
   
   socket.on('join', (playerName) => {
@@ -121,16 +160,7 @@ io.on('connection', (socket) => {
       dealCards(socket.id, 7);
     }
     
-    io.emit('gameState', {
-      players: gameState.players,
-      scores: gameState.scores,
-      currentCzar: gameState.currentCzar,
-      blackCard: gameState.blackCard,
-      roundPhase: gameState.roundPhase,
-      gameStarted: gameState.gameStarted,
-      submissionCount: Object.keys(gameState.submissions).length,
-      totalPlayers: Object.keys(gameState.players).length - 1
-    });
+    broadcastGameState();
     
     socket.emit('yourCards', gameState.whiteCards[socket.id]);
   });
@@ -145,16 +175,7 @@ io.on('connection', (socket) => {
       
       startNewRound();
       
-      io.emit('gameState', {
-        players: gameState.players,
-        scores: gameState.scores,
-        currentCzar: gameState.currentCzar,
-        blackCard: gameState.blackCard,
-        roundPhase: gameState.roundPhase,
-        gameStarted: gameState.gameStarted,
-        submissionCount: 0,
-        totalPlayers: Object.keys(gameState.players).length - 1
-      });
+      broadcastGameState();
       
       Object.keys(gameState.players).forEach(id => {
         io.to(id).emit('yourCards', gameState.whiteCards[id]);
@@ -172,34 +193,14 @@ io.on('connection', (socket) => {
       gameState.submissions[socket.id] = card;
       gameState.whiteCards[socket.id].splice(cardIndex, 1);
       
-      io.emit('gameState', {
-        players: gameState.players,
-        scores: gameState.scores,
-        currentCzar: gameState.currentCzar,
-        blackCard: gameState.blackCard,
-        roundPhase: gameState.roundPhase,
-        gameStarted: gameState.gameStarted,
-        submissionCount: Object.keys(gameState.submissions).length,
-        totalPlayers: Object.keys(gameState.players).length - 1
-      });
+      broadcastGameState();
       
       socket.emit('yourCards', gameState.whiteCards[socket.id]);
       
       const nonCzarPlayers = Object.keys(gameState.players).filter(id => id !== gameState.currentCzar);
       if (Object.keys(gameState.submissions).length === nonCzarPlayers.length) {
         gameState.roundPhase = 'judging';
-        
-        const shuffledSubmissions = shuffleArray(Object.entries(gameState.submissions));
-        
-        io.emit('gameState', {
-          players: gameState.players,
-          scores: gameState.scores,
-          currentCzar: gameState.currentCzar,
-          blackCard: gameState.blackCard,
-          roundPhase: gameState.roundPhase,
-          gameStarted: gameState.gameStarted,
-          submissions: shuffledSubmissions
-        });
+        broadcastGameState();
       }
     }
   });
@@ -222,17 +223,7 @@ io.on('connection', (socket) => {
     
     setTimeout(() => {
       startNewRound();
-      
-      io.emit('gameState', {
-        players: gameState.players,
-        scores: gameState.scores,
-        currentCzar: gameState.currentCzar,
-        blackCard: gameState.blackCard,
-        roundPhase: gameState.roundPhase,
-        gameStarted: gameState.gameStarted,
-        submissionCount: 0,
-        totalPlayers: Object.keys(gameState.players).length - 1
-      });
+      broadcastGameState();
       
       Object.keys(gameState.players).forEach(id => {
         io.to(id).emit('yourCards', gameState.whiteCards[id]);
@@ -257,16 +248,7 @@ io.on('connection', (socket) => {
       gameState.roundPhase = 'waiting';
     }
     
-    io.emit('gameState', {
-      players: gameState.players,
-      scores: gameState.scores,
-      currentCzar: gameState.currentCzar,
-      blackCard: gameState.blackCard,
-      roundPhase: gameState.roundPhase,
-      gameStarted: gameState.gameStarted,
-      submissionCount: Object.keys(gameState.submissions).length,
-      totalPlayers: Object.keys(gameState.players).length - 1
-    });
+    broadcastGameState();
   });
 });
 

@@ -51,12 +51,15 @@ socket.on('gameState', (state) => {
     lobbyScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
     
-    blackCard.textContent = state.blackCard || '';
+    if (state.isCzar && state.blackCard) {
+      blackCard.textContent = state.blackCard;
+    } else if (!state.isCzar) {
+      blackCard.textContent = 'aguardando o juiz...';
+    }
     
-    const isCzar = myId === state.currentCzar;
     const czarName = state.players[state.currentCzar];
     
-    if (isCzar) {
+    if (state.isCzar) {
       czarInfo.textContent = '👑 você é o juiz desta rodada';
     } else {
       czarInfo.textContent = `👑 ${czarName} é o juiz`;
@@ -64,24 +67,25 @@ socket.on('gameState', (state) => {
     
     if (state.roundPhase === 'playing') {
       submissionsContainer.classList.add('hidden');
-      whiteCardsContainer.classList.remove('hidden');
       
-      if (isCzar) {
+      if (state.isCzar) {
+        whiteCardsContainer.classList.add('hidden');
         statusInfo.textContent = 'aguardando respostas...';
       } else {
+        whiteCardsContainer.classList.remove('hidden');
         statusInfo.textContent = `${state.submissionCount}/${state.totalPlayers} respostas enviadas`;
       }
     } else if (state.roundPhase === 'judging') {
       whiteCardsContainer.classList.add('hidden');
-      submissionsContainer.classList.remove('hidden');
       
-      if (isCzar) {
+      if (state.isCzar) {
+        submissionsContainer.classList.remove('hidden');
         statusInfo.textContent = 'escolha a melhor resposta';
+        renderSubmissions(state.submissions, true);
       } else {
+        submissionsContainer.classList.add('hidden');
         statusInfo.textContent = 'aguardando o juiz escolher...';
       }
-      
-      renderSubmissions(state.submissions, isCzar);
     }
   } else {
     updateLobby(state);
@@ -167,7 +171,7 @@ function updateScores() {
 function renderCards() {
   whiteCardsContainer.innerHTML = '';
   
-  const isCzar = myId === gameState?.currentCzar;
+  const isCzar = gameState?.isCzar;
   const hasSubmitted = gameState?.submissions && gameState.submissions[myId];
   
   myCards.forEach((card, index) => {

@@ -21,8 +21,7 @@ let gameState = {
   scores: {},
   gameStarted: false,
   roundPhase: 'waiting',
-  selectedWinner: null,
-  usedWhiteCards: []
+  selectedWinner: null
 };
 
 let questions = { 
@@ -56,25 +55,14 @@ function shuffleArray(array) {
   return arr;
 }
 
-function dealCards(playerId, count = 7) {
+function dealCards(playerId, count = 8) {
   if (!gameState.whiteCards[playerId]) {
     gameState.whiteCards[playerId] = [];
   }
   
-  const allUsedCards = [
-    ...Object.values(gameState.whiteCards).flat(),
-    ...gameState.usedWhiteCards
-  ];
-  
   const availableCards = questions.white.filter(
-    card => !allUsedCards.includes(card)
+    card => !Object.values(gameState.whiteCards).flat().includes(card)
   );
-  
-  if (availableCards.length === 0) {
-    gameState.usedWhiteCards = [];
-    const allCurrentCards = Object.values(gameState.whiteCards).flat();
-    availableCards.push(...questions.white.filter(card => !allCurrentCards.includes(card)));
-  }
   
   const shuffled = shuffleArray(availableCards);
   const needed = count - gameState.whiteCards[playerId].length;
@@ -118,7 +106,7 @@ function startNewRound() {
   
   playerIds.forEach(id => {
     if (id !== gameState.currentCzar) {
-      dealCards(id, 7);
+      dealCards(id, 8);
     }
   });
 }
@@ -159,7 +147,7 @@ io.on('connection', (socket) => {
     gameState.whiteCards[socket.id] = [];
     
     if (gameState.gameStarted && gameState.roundPhase === 'playing') {
-      dealCards(socket.id, 7);
+      dealCards(socket.id, 8);
     }
     
     broadcastGameState();
@@ -172,7 +160,7 @@ io.on('connection', (socket) => {
       gameState.gameStarted = true;
       
       Object.keys(gameState.players).forEach(id => {
-        dealCards(id, 7);
+        dealCards(id, 8);
       });
       
       startNewRound();
@@ -194,10 +182,6 @@ io.on('connection', (socket) => {
     if (card) {
       gameState.submissions[socket.id] = card;
       gameState.whiteCards[socket.id].splice(cardIndex, 1);
-      
-      if (!gameState.usedWhiteCards.includes(card)) {
-        gameState.usedWhiteCards.push(card);
-      }
       
       broadcastGameState();
       
